@@ -111,6 +111,12 @@ gen_data()
         local sanitized_title="${sanitized_title%%/}"
         local sanitized_title="${sanitized_title##*/}"
         local subreddit="$(jq -r ".data.subreddit" "$jsonFile")"
+        # The SpacePorn subreddit actually has 'spaceporn' as its
+        # field entry. I don't like that, so we'll manually override
+        # this.
+        if [[ "$subreddit" == "spaceporn" ]];then
+            subreddit="SpacePorn"
+        fi
         local file_dir="${id}___${sanitized_title}"
         local file_path="${subreddit}/${file_dir}/${image_name}"
         #local timestamp="$(jq -r '.data.created_utc' "${jsonFiles[$i]}")"
