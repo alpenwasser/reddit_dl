@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 i=0
-for dir in *porn;do
+for dir in *Porn;do
     cd "$dir"
     if [[ "$i" -eq 0 ]];then
         tput bold
