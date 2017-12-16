@@ -1,7 +1,7 @@
 CP          := cp
 CHMOD       := chmod +x
 BIN         := bin
-TARGET_DIRS := $(wildcard *porn)
+TARGET_DIRS := $(wildcard *Porn)
 PRINTF      := printf
 
 install:
@@ -15,3 +15,7 @@ install:
 		$(CHMOD) $$dir/sync.sh ; \
 		$(CHMOD) $$dir/view.sh ; \
 	done
+	@$(CP) $(BIN)/sfwporn.sh .
+	@$(CHMOD) sfwporn.sh
+	@$(CP) $(BIN)/topview.sh .
+	@$(CHMOD) topview.sh

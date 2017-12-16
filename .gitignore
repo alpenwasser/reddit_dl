@@ -1,5 +1,4 @@
-*
-!bin
-!.gitignore
-!sfwporn.sh
-!Makefile
+/animalgifs/
+*Porn/*
+/*.sh
+fehlist.txt
