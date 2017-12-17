@@ -35,6 +35,33 @@ print_help()
     echo "-s: Switch. Slide show mode. Takes precedence over -f."
     echo "-f: Switch. Full screen mode."
 }
+
+file_not_found_error()
+{
+    local file_path="$1"
+
+    tput bold
+    printf '>>> '
+    tput setaf 1
+    printf 'ERROR: '
+    tput sgr0
+    printf 'File not found: %s\n' "$file_path"
+    tput sgr0
+}
+
+ensure_camelcasing()
+{
+    local subreddit="$1"
+
+    if [[ "$subreddit" == "spaceporn" ]];then
+        subreddit="SpacePorn"
+    elif [[ "$subreddit" == "winterporn" ]];then
+        subreddit="WinterPorn"
+    fi
+
+    printf '%s' "$subreddit"
+}
+
 parse_input()
 {
     local OPTIND
@@ -111,14 +138,17 @@ gen_data()
         local sanitized_title="${sanitized_title%%/}"
         local sanitized_title="${sanitized_title##*/}"
         local subreddit="$(jq -r ".data.subreddit" "$jsonFile")"
-        # The SpacePorn subreddit actually has 'spaceporn' as its
-        # field entry. I don't like that, so we'll manually override
-        # this.
-        if [[ "$subreddit" == "spaceporn" ]];then
-            subreddit="SpacePorn"
-        fi
+
+        # Some subreddits don't do the capitalization/Camelcasing.
+        subreddit="$(ensure_camelcasing "$subreddit")"
+
         local file_dir="${id}___${sanitized_title}"
         local file_path="${subreddit}/${file_dir}/${image_name}"
+
+        # Make sure everything went right.
+        if ! [ -f "$file_path" ];then
+            file_not_found_error "$file_path"
+        fi
         #local timestamp="$(jq -r '.data.created_utc' "${jsonFiles[$i]}")"
 
         TIMESTAMPED_IMAGES[$i]="${timestamp}:${file_path}"
@@ -170,7 +200,7 @@ view_normal_constrained()
         --sort mtime \
         --auto-zoom \
         --action1 'imageName=%F;jsonName="${imageName%%.*}.json";id="$(jq -r .data.id "$jsonName")";echo "$id" >> blacklist.txt' \
-        --filelist "${FILE_LIST}"
+        --filelist "${FILE_LIST}" &
 }
 
 view_normal()
