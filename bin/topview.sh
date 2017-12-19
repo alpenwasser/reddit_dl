@@ -14,6 +14,7 @@ FULLSCREEN=false
 MMIN=0
 MTIME=0
 MINS_PER_DAY=1440
+declare -a DIRECTORIES
 
 # ---------------------------------------------------------------------------------------------------- #
 #
@@ -57,6 +58,10 @@ ensure_camelcasing()
         subreddit="SpacePorn"
     elif [[ "$subreddit" == "winterporn" ]];then
         subreddit="WinterPorn"
+    elif [[ "$subreddit" == "seaporn" ]];then
+        subreddit="SeaPorn"
+    elif [[ "$subreddit" == "waterporn" ]];then
+        subreddit="WaterPorn"
     fi
 
     printf '%s' "$subreddit"
@@ -103,55 +108,41 @@ get_files()
 {
     if [[ $MMIN -gt 0 ]];then
         jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MMIN}" -iname '*json' -printf '%T@:%p\n' | sort )"
+        dirsFound="$(find . -mindepth 2 -type d -mmin +0 -mmin "-${MMIN}" -printf '%T@:%p\n' | sort )"
     elif [[ $MTIME -gt 0 ]];then
         # find -mtime  0: find files modified between now and one day ago. Does not seem to work with -mtime -n.
         # find -mtime +0: find files modified greater than one day ago
         # NOTE: -mmin does not seem to have similar behavior and always requires a +, maybe?
-        #jsonFilesFound="$(find . -mindepth 2 -type f -mtime 0 -mtime "-${MTIME}" -iname '*json' -printf '%T@:%p\n' | sort )"
         MTIME=$((MTIME * MINS_PER_DAY))
         jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MTIME}" -iname '*json' -printf '%T@:%p\n' | sort )"
+        dirsFound="$(find . -mindepth 2 -type d -mmin +0 -mmin "-${MTIME}" -printf '%T@:%p\n' | sort )"
     else
         jsonFilesFound="$(find . -mindepth 3 -type f -iname '*json' -printf '%T@:%p\n' | sort )"
+        dirsFound="$(find . -mindepth 2 -type d -printf '%T@:%p\n' | sort )"
     fi
-    if [ -z "$jsonFilesFound" ];then
+    if [ -z "$dirsFound" ];then
         tput bold
         tput setaf 1
         echo ">>> No files found!"
         tput sgr0
         exit 20
     fi
-    readarray -t jsonFiles  <<< "$jsonFilesFound"
+    readarray -t DIRECTORIES  <<< "$dirsFound"
 }
 
 gen_data()
 {
     # Assembles data structure of fimage filename and timestamp.
-
     i=0
-    while [[ $i -lt ${#jsonFiles[@]} ]];do
-
-        local timestamp="$( sed -E 's/^(.*):.*$/\1/' <<< "${jsonFiles[$i]}")"
-        local jsonFile="$( sed -E 's/^.*:(.*)/\1/' <<< "${jsonFiles[$i]}")"
-        local image_name="$(basename "$(jq -r ".data.url" "$jsonFile")")"
-        local id="$(jq -r ".data.id" "$jsonFile")"
-        local sanitized_title="$(jq -r ".data.permalink" "$jsonFile")"
-        local sanitized_title="${sanitized_title%%/}"
-        local sanitized_title="${sanitized_title##*/}"
-        local subreddit="$(jq -r ".data.subreddit" "$jsonFile")"
-
-        # Some subreddits don't do the capitalization/Camelcasing.
-        subreddit="$(ensure_camelcasing "$subreddit")"
-
-        local file_dir="${id}___${sanitized_title}"
-        local file_path="${subreddit}/${file_dir}/${image_name}"
-
-        # Make sure everything went right.
-        if ! [ -f "$file_path" ];then
-            file_not_found_error "$file_path"
+    while [[ $i -lt ${#DIRECTORIES[@]} ]];do
+        image="$(find "${DIRECTORIES[$i]#*:}" -type f -not -iname '*json')"
+        if [ -z "$image" ];then
+            rmdir -v "${DIRECTORIES[$i]#*:}"
+            i=$((i+1))
+            continue
         fi
-        #local timestamp="$(jq -r '.data.created_utc' "${jsonFiles[$i]}")"
-
-        TIMESTAMPED_IMAGES[$i]="${timestamp}:${file_path}"
+        timestamp="${DIRECTORIES[$i]%:*}"
+        TIMESTAMPED_IMAGES[$i]="${timestamp}:${image}"
         i=$((i+1))
     done
 }
