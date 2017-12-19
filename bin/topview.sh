@@ -107,17 +107,17 @@ parse_input()
 get_files()
 {
     if [[ $MMIN -gt 0 ]];then
-        jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MMIN}" -iname '*json' -printf '%T@:%p\n' | sort )"
+        #jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MMIN}" -iname '*json' -printf '%T@:%p\n' | sort )"
         dirsFound="$(find . -mindepth 2 -type d -mmin +0 -mmin "-${MMIN}" -printf '%T@:%p\n' | sort )"
     elif [[ $MTIME -gt 0 ]];then
         # find -mtime  0: find files modified between now and one day ago. Does not seem to work with -mtime -n.
         # find -mtime +0: find files modified greater than one day ago
         # NOTE: -mmin does not seem to have similar behavior and always requires a +, maybe?
         MTIME=$((MTIME * MINS_PER_DAY))
-        jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MTIME}" -iname '*json' -printf '%T@:%p\n' | sort )"
+        #jsonFilesFound="$(find . -mindepth 3 -type f -mmin +0 -mmin "-${MTIME}" -iname '*json' -printf '%T@:%p\n' | sort )"
         dirsFound="$(find . -mindepth 2 -type d -mmin +0 -mmin "-${MTIME}" -printf '%T@:%p\n' | sort )"
     else
-        jsonFilesFound="$(find . -mindepth 3 -type f -iname '*json' -printf '%T@:%p\n' | sort )"
+        #jsonFilesFound="$(find . -mindepth 3 -type f -iname '*json' -printf '%T@:%p\n' | sort )"
         dirsFound="$(find . -mindepth 2 -type d -printf '%T@:%p\n' | sort )"
     fi
     if [ -z "$dirsFound" ];then
@@ -136,7 +136,11 @@ gen_data()
     i=0
     while [[ $i -lt ${#DIRECTORIES[@]} ]];do
         image="$(find "${DIRECTORIES[$i]#*:}" -type f -not -iname '*json')"
-        if [ -z "$image" ];then
+        if [[ "${DIRECTORIES[$i]#*:}" =~ git ]];then
+            # Skip git repo directory, obviously.
+            i=$((i+1))
+            continue
+        elif [ -z "$image" ];then
             rmdir -v "${DIRECTORIES[$i]#*:}"
             i=$((i+1))
             continue
