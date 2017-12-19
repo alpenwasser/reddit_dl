@@ -196,9 +196,9 @@ download_posts()
         else
             mkdir -p "$target_dir"
         fi
-        if [[ ! ("$url" =~ jpg$ || "$url" =~ jpeg$) ]];then
+        if [[ ! ("$url" =~ jpg$ || "$url" =~ jpeg$ || "$url" =~ png$ || "$url" =~ PNG$ || "$url" =~ JPEG$ || "$url" =~ JPG$ ) ]];then
             # Images hosted on imgur
-            if [[ "$url" =~ imgur ]];then
+            if [[ "$url" =~ https:\/\/api.imgur ]];then
                 # Prepare filenames
                 imageHash="${url##*/}"
                 imageJSON=$(mktemp)
@@ -225,9 +225,28 @@ download_posts()
                     FAIL_FLAG=true
                 fi
                 rm -f "$imageJSON"
+            elif [[ "$url" =~ https:\/\/i.imgur ]];then
+                # No JSON Present; direct image link
+
+                # Download actual image
+                mkdir -p "$target_dir"
+                wget -q --no-clobber "$url" -P "$target_dir"
+
+                # Evaluate success
+                if [[ "$?" -eq 0 ]];then
+                    print_status 'OK' 2
+                    string_cols=$((TERM_COLS - 17))
+                    printf "\t\t%s\n" "${title:0:${string_cols}}"
+                    IMG_COUNT=$((IMG_COUNT+1))
+                else
+                    print_status 'FAIL' 1
+                    string_cols=$((TERM_COLS - 19))
+                    printf "\t%s\n" "${title:0:${string_cols}}"
+                    rm -rf "$target_dir"
+                    FAIL_FLAG=true
+                fi
             fi
         else
-
             # Download image if it is a direct image link.
             wget -q --no-clobber "$url" -P "$target_dir"
 
