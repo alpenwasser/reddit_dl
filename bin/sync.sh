@@ -24,6 +24,7 @@ TERM_COLS="$(tput cols)"
 FAIL_FLAG=false
 IMG_COUNT=0
 BLACKLIST='blacklist.txt'
+BLACKLIST_GLOBAL='../blacklist.txt'
 
 
 # ---------------------------------------------------------------------------------------------------- #
@@ -45,16 +46,33 @@ print_status()
 
 check_blacklist()
 {
+    # Returns 0 if entry found in blacklist.
+
     id="$1"
+
+    # Nothing to worry about if blacklist does not even exist.
     if ! [ -f "$BLACKLIST" ];then
         printf '1'
         return
     fi
+
+    # Check local blacklist first.
     grep -qP "^${id}$" "$BLACKLIST"
     if [[ "$?" -eq 0 ]];then
         printf '0'
     else
-        printf '1'
+        # If nothing found in local list, check global list.
+        if ! [ -f "$BLACKLIST_GLOBAL" ];then
+            printf '1'
+            return
+        fi
+        grep -qP "^${id}$" "$BLACKLIST_GLOBAL"
+        if [[ "$?" -eq 0 ]];then
+            printf '0'
+        else
+            # No entry in blacklist.
+            printf '1'
+        fi
     fi
 }
 
